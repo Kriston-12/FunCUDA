@@ -1,0 +1,4 @@
+# Ignore compiled executable and related files
+a.exe
+a.exp
+a.lib

@@ -1,7 +1,7 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#define BLOCK_SIZE 16 // Size of a thread block
+#define BLOCK_SIZE 256 // Size of a thread block
 
 // This will be a most fundamental matrix multiplication in cuda
 // C = A @ B. This is a very raw/slow implementation that still has iterative things
