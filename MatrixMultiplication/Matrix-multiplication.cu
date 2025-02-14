@@ -1,7 +1,55 @@
 #include <cuda_runtime.h>
 #include <iostream>
 
-#define BLOCK_SIZE 256 // Size of a thread block
+#define BLOCK_SIZE 16 // Size of a thread block
+#define MAX_BLOCKS_PER_DIM 32  // Limit the grid size per dimension to avoid exceeding max GPU threads
+
+
+// Define matrix struct, to be used
+typedef struct {
+    int width;
+    int height;
+    float* elements;
+} Matrix;
+
+__global__ void matrixMulKernel(float* A, float* B, float* C, int M, int K, int N) {
+    __shared__ float As[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float Bs[BLOCK_SIZE][BLOCK_SIZE];
+
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (row < M && col < N) {
+        float value = 0.0f;
+
+        for (int i = 0; i < (K + BLOCK_SIZE - 1) / BLOCK_SIZE; ++i) {
+            if (row < M && i * BLOCK_SIZE + threadIdx.x < K) {
+                As[threadIdx.y][threadIdx.x] = A[row * K + i * BLOCK_SIZE + threadIdx.x];
+            } 
+            else {
+                As[threadIdx.y][threadIdx.x] = 0.0f;
+            }
+
+            if (i * BLOCK_SIZE + threadIdx.y < K && col < N) {
+                Bs[threadIdx.y][threadIdx.x] = B[(i * BLOCK_SIZE + threadIdx.y) * N + col];
+            } 
+            else {
+                Bs[threadIdx.y][threadIdx.x] = 0.0f;
+            }
+
+            __syncthreads();
+
+            for (int j = 0; j < BLOCK_SIZE; ++j) {
+                value += As[threadIdx.y][j] * Bs[j][threadIdx.x];
+            }
+
+            __syncthreads();
+        }
+
+        C[row * N + col] = value;
+    }
+}
+
 
 // This will be a most fundamental matrix multiplication in cuda
 // C = A @ B. This is a very raw/slow implementation that still has iterative things
