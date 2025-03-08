@@ -53,3 +53,5 @@ threadIdx:(1,0,0) blockIdx:(0,0,0) blockDim:(4,1,1)        gridDim(3,1,1)
 threadIdx:(2,0,0) blockIdx:(0,0,0) blockDim:(4,1,1)        gridDim(3,1,1)
 threadIdx:(3,0,0) blockIdx:(0,0,0) blockDim:(4,1,1)        gridDim(3,1,1)*/    
 }
+
+
