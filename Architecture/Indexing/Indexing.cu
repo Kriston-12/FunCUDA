@@ -50,7 +50,9 @@ int main(int argc,char** argv)
   // Copy data from host memory to device memory 
   cudaMemcpy(A_dev,A_host,nBytes,cudaMemcpyHostToDevice);
 
-  dim3 block(4,2);
+  dim3 block(4,2); // Here we need to imagine it as a 2 x 4 matrix instead of a 4 x 2 matrix in our grid. Visual Explanantion see Readme.md
+  printf("block.x is %d\nblock.y is %d\n", block.x, block.y); 
+
   dim3 grid((nx-1)/block.x+1,(ny-1)/block.y+1); // The grid will have a dimension of (8/4, 6/2) = (2, 3), namely 6 blocks 
 
   // We could imagine we have a 6x8 matrix, and this matrix is split into 6 smaller matrix 
