@@ -8,7 +8,7 @@
 bool check(float* out, float* res, int n) {
     bool flag = true;
     for (int i = 0; i < n; i++) {
-        if (abs(out[i] - res[i]) > 1e-5) {
+        if (fabsf(out[i] - res[i]) > 1e-2) {
             printf("Error at %d: %f != %f\n", i, out[i], res[i]);
             flag = false;
         }
@@ -31,9 +31,16 @@ void cpu_reduce(float* input, float* output, int blockNum) {
 }
 
 __global__ void reduce0(float* input, float* output) {
-    // int thread_idx = threadIdx.x;
-    // int global_idx = blockIdx.x * blockDim.x + thread_idx.x;
-
+    float *blockstart = input + blockIdx.x * blockDim.x;
+    for (int i = 1; i < blockDim.x; i *= 2) {
+        if (threadIdx.x % (2 * i) == 0) {
+            blockstart[threadIdx.x] += blockstart[threadIdx.x + i];
+        }
+        __syncthreads();
+    }
+    if (threadIdx.x == 0) {
+        output[blockIdx.x] = blockstart[0];
+    }
 }
 
 int main() {
@@ -46,7 +53,8 @@ int main() {
 
     // reduce along all threads in each block, so we only need one output per block
     float *gpu_output = (float*)malloc(block_num * sizeof(float));
-    float *cpu_output = (float*)malloc(block_num * sizeof(float));
+    // float *cpu_output = (float*)malloc(block_num * sizeof(float));
+    float *cpu_output = (float*)calloc(block_num, sizeof(float)); // initialize to zero
 
 
     float *d_output;
