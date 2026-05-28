@@ -30,16 +30,20 @@ void cpu_reduce(float* input, float* output, int blockNum) {
     }
 }
 
-__global__ void reduce0(float* input, float* output) {
+__global__ void reduce_shared_mem(float* input, float* output) {
+    __shared__ float sdata[THREADS_PER_BLOCK];
     float *blockstart = input + blockIdx.x * blockDim.x;
-    for (int i = 1; i < blockDim.x; i *= 2) {
-        if (threadIdx.x % (2 * i) == 0) {
-            blockstart[threadIdx.x] += blockstart[threadIdx.x + i];
+    sdata[threadIdx.x] = blockstart[threadIdx.x];
+    __syncthreads();
+    for (int i = 1; i < blockDim.x; i <<= 1) {
+        if (threadIdx.x < blockDim.x / (i << 1)) {
+            int idx = threadIdx.x * (i << 1);
+            sdata[idx] += sdata[idx + i];
         }
         __syncthreads();
     }
     if (threadIdx.x == 0) {
-        output[blockIdx.x] = blockstart[0];
+        output[blockIdx.x] = sdata[0];
     }
 }
 
@@ -66,7 +70,7 @@ int main() {
     dim3 Block(THREADS_PER_BLOCK, 1);
 
     cpu_reduce(input, cpu_output, block_num);
-    reduce0<<<Grid, Block>>>(d_input, d_output);
+    reduce_shared_mem<<<Grid, Block>>>(d_input, d_output);
     cudaMemcpy(gpu_output, d_output, block_num * sizeof(float), cudaMemcpyDeviceToHost);
     check(cpu_output, gpu_output, block_num);
 
