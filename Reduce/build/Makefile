@@ -117,41 +117,41 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named my_reduce_v2_no_divergence
+# Target rules for targets named my_reduce_v2_no_bank_conflict
 
 # Build rule for target.
-my_reduce_v2_no_divergence: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v2_no_divergence
-.PHONY : my_reduce_v2_no_divergence
+my_reduce_v2_no_bank_conflict: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v2_no_bank_conflict
+.PHONY : my_reduce_v2_no_bank_conflict
 
 # fast build rule for target.
-my_reduce_v2_no_divergence/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_divergence.dir/build.make CMakeFiles/my_reduce_v2_no_divergence.dir/build
-.PHONY : my_reduce_v2_no_divergence/fast
+my_reduce_v2_no_bank_conflict/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build
+.PHONY : my_reduce_v2_no_bank_conflict/fast
 
-my_reduce_v2_no_divergence.o: my_reduce_v2_no_divergence.cu.o
-.PHONY : my_reduce_v2_no_divergence.o
+my_reduce_v2_no_bank_conflict.o: my_reduce_v2_no_bank_conflict.cu.o
+.PHONY : my_reduce_v2_no_bank_conflict.o
 
 # target to build an object file
-my_reduce_v2_no_divergence.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_divergence.dir/build.make CMakeFiles/my_reduce_v2_no_divergence.dir/my_reduce_v2_no_divergence.cu.o
-.PHONY : my_reduce_v2_no_divergence.cu.o
+my_reduce_v2_no_bank_conflict.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.o
+.PHONY : my_reduce_v2_no_bank_conflict.cu.o
 
-my_reduce_v2_no_divergence.i: my_reduce_v2_no_divergence.cu.i
-.PHONY : my_reduce_v2_no_divergence.i
+my_reduce_v2_no_bank_conflict.i: my_reduce_v2_no_bank_conflict.cu.i
+.PHONY : my_reduce_v2_no_bank_conflict.i
 
 # target to preprocess a source file
-my_reduce_v2_no_divergence.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_divergence.dir/build.make CMakeFiles/my_reduce_v2_no_divergence.dir/my_reduce_v2_no_divergence.cu.i
-.PHONY : my_reduce_v2_no_divergence.cu.i
+my_reduce_v2_no_bank_conflict.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.i
+.PHONY : my_reduce_v2_no_bank_conflict.cu.i
 
-my_reduce_v2_no_divergence.s: my_reduce_v2_no_divergence.cu.s
-.PHONY : my_reduce_v2_no_divergence.s
+my_reduce_v2_no_bank_conflict.s: my_reduce_v2_no_bank_conflict.cu.s
+.PHONY : my_reduce_v2_no_bank_conflict.s
 
 # target to generate assembly for a file
-my_reduce_v2_no_divergence.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_divergence.dir/build.make CMakeFiles/my_reduce_v2_no_divergence.dir/my_reduce_v2_no_divergence.cu.s
-.PHONY : my_reduce_v2_no_divergence.cu.s
+my_reduce_v2_no_bank_conflict.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.s
+.PHONY : my_reduce_v2_no_bank_conflict.cu.s
 
 # Help Target
 help:
@@ -161,10 +161,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... my_reduce_v2_no_divergence"
-	@echo "... my_reduce_v2_no_divergence.o"
-	@echo "... my_reduce_v2_no_divergence.i"
-	@echo "... my_reduce_v2_no_divergence.s"
+	@echo "... my_reduce_v2_no_bank_conflict"
+	@echo "... my_reduce_v2_no_bank_conflict.o"
+	@echo "... my_reduce_v2_no_bank_conflict.i"
+	@echo "... my_reduce_v2_no_bank_conflict.s"
 .PHONY : help
 
 

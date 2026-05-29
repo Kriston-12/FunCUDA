@@ -1,3 +1,3 @@
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v2_no_divergence.dir
+/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v2_no_bank_conflict.dir
 /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/edit_cache.dir
 /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/rebuild_cache.dir
