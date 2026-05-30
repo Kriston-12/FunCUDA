@@ -30,4 +30,6 @@ endfunction()
 # add_reduce_executable(my_reduce_v2_warp_shuffle my_reduce_v2_warp_shuffle.cu)
 # add_reduce_executable(my_reduce_v2_no_divergence_bank_conflict my_reduce_v2_no_divergence_bank_conflict.cu)
 
-add_reduce_executable(my_reduce_v2_no_bank_conflict my_reduce_v2_no_bank_conflict.cu)
+# add_reduce_executable(my_reduce_v3_no_bank_conflict my_reduce_v3_no_bank_conflict.cu)
+
+add_reduce_executable(my_reduce_v4_add_during_load my_reduce_v4_add_during_load.cu)

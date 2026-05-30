@@ -117,41 +117,41 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named my_reduce_v2_no_bank_conflict
+# Target rules for targets named my_reduce_v4_add_during_load
 
 # Build rule for target.
-my_reduce_v2_no_bank_conflict: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v2_no_bank_conflict
-.PHONY : my_reduce_v2_no_bank_conflict
+my_reduce_v4_add_during_load: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v4_add_during_load
+.PHONY : my_reduce_v4_add_during_load
 
 # fast build rule for target.
-my_reduce_v2_no_bank_conflict/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build
-.PHONY : my_reduce_v2_no_bank_conflict/fast
+my_reduce_v4_add_during_load/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/build
+.PHONY : my_reduce_v4_add_during_load/fast
 
-my_reduce_v2_no_bank_conflict.o: my_reduce_v2_no_bank_conflict.cu.o
-.PHONY : my_reduce_v2_no_bank_conflict.o
+my_reduce_v4_add_during_load.o: my_reduce_v4_add_during_load.cu.o
+.PHONY : my_reduce_v4_add_during_load.o
 
 # target to build an object file
-my_reduce_v2_no_bank_conflict.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.o
-.PHONY : my_reduce_v2_no_bank_conflict.cu.o
+my_reduce_v4_add_during_load.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.o
+.PHONY : my_reduce_v4_add_during_load.cu.o
 
-my_reduce_v2_no_bank_conflict.i: my_reduce_v2_no_bank_conflict.cu.i
-.PHONY : my_reduce_v2_no_bank_conflict.i
+my_reduce_v4_add_during_load.i: my_reduce_v4_add_during_load.cu.i
+.PHONY : my_reduce_v4_add_during_load.i
 
 # target to preprocess a source file
-my_reduce_v2_no_bank_conflict.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.i
-.PHONY : my_reduce_v2_no_bank_conflict.cu.i
+my_reduce_v4_add_during_load.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.i
+.PHONY : my_reduce_v4_add_during_load.cu.i
 
-my_reduce_v2_no_bank_conflict.s: my_reduce_v2_no_bank_conflict.cu.s
-.PHONY : my_reduce_v2_no_bank_conflict.s
+my_reduce_v4_add_during_load.s: my_reduce_v4_add_during_load.cu.s
+.PHONY : my_reduce_v4_add_during_load.s
 
 # target to generate assembly for a file
-my_reduce_v2_no_bank_conflict.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v2_no_bank_conflict.dir/build.make CMakeFiles/my_reduce_v2_no_bank_conflict.dir/my_reduce_v2_no_bank_conflict.cu.s
-.PHONY : my_reduce_v2_no_bank_conflict.cu.s
+my_reduce_v4_add_during_load.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.s
+.PHONY : my_reduce_v4_add_during_load.cu.s
 
 # Help Target
 help:
@@ -161,10 +161,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... my_reduce_v2_no_bank_conflict"
-	@echo "... my_reduce_v2_no_bank_conflict.o"
-	@echo "... my_reduce_v2_no_bank_conflict.i"
-	@echo "... my_reduce_v2_no_bank_conflict.s"
+	@echo "... my_reduce_v4_add_during_load"
+	@echo "... my_reduce_v4_add_during_load.o"
+	@echo "... my_reduce_v4_add_during_load.i"
+	@echo "... my_reduce_v4_add_during_load.s"
 .PHONY : help
 
 

@@ -3,3 +3,7 @@
 *.exp
 *.lib
 *.vscode
+
+# Ignore CMake build files
+**/build/
+**/build/**

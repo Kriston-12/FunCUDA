@@ -1,4 +1,4 @@
-[3805] my_reduce_v2_no_bank_conflict@127.0.0.1
+[3805] my_reduce_v3_no_bank_conflict@127.0.0.1
   reduce_shared_mem(float *, float *) (131072, 1, 1)x(256, 1, 1), Context 1, Stream 7, Device 0, CC 7.5
     Section: GPU Speed Of Light Throughput
     ----------------------- ----------- ------------
