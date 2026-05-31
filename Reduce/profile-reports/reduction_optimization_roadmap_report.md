@@ -401,6 +401,187 @@ v4 仍然不接近 FP32 roof：
 
 ---
 
+## 4.6 v4 A vs v4 B: 256 threads/block 与 128 threads/block 的差异
+
+这一组对比现在基于同一口径的 release 报告，可以直接把差异主要归因到 `block size` 和对应的 reduction 粒度变化上。
+
+### 代码层面的实际差异
+
+`v4 A` 与 `v4 B` 的算法完全相同：
+
+- 都是 add-during-load
+- 都是每个 `thread` 先处理 2 个元素
+- 都使用 sequential addressing 的 shared-memory reduction
+
+两者真正的实现差异只有：
+
+1. `THREADS_PER_BLOCK`
+  - `A = 256`
+  - `B = 128`
+
+2. 因为每个 thread 仍然处理 2 个元素，所以每个 block 处理的元素数不同
+  - `A`: 每个 block 处理 `512` 个元素
+  - `B`: 每个 block 处理 `256` 个元素
+
+3. 因此 grid 大小不同
+  - `A`: `65536`
+  - `B`: `131072`
+
+### 指标对比
+
+| 指标 | v4 A | v4 B | 观察 |
+|---|---:|---:|---|
+| Block Size | 256 | 128 | B 每个 block 的线程数减半 |
+| Grid Size | 65536 | 131072 | B 的 block 数翻倍 |
+| Threads | 16777216 | 16777216 | 两者总线程数相同 |
+| Duration | 1.65 ms | 1.50 ms | B 略快，约 `-9.1%` |
+| SM Active Cycles | 963812 | 873493 | B 略低，约 `-9.4%` |
+| Executed Instructions | 56.49M | 51.64M | B 略少，约 `-8.6%` |
+| Memory Throughput | 111.60 GB/s | 120.66 GB/s | B 略高 |
+| Max Bandwidth | 76.73% | 76.39% | 基本不变 |
+| Issue Slots Busy | 36.59% | 36.89% | 基本持平，B 略高 |
+| Eligible Warps / Scheduler | 0.60 | 0.54 | B 略低 |
+| Achieved Occupancy | 90.41% | 89.28% | B 略低 |
+| Branch Efficiency | 100% | 100% | 相同 |
+| Avg. Divergent Branches | 0 | 0 | 相同 |
+
+### 第一主因：B 的 reduction tree 更浅，单个 CTA 的指令工作量更少
+
+这次 release 对比里，最稳定的变化是：`B` 的单个 block 线程数从 `256` 降到 `128`，因此 shared-memory reduction 的层数少一层。
+
+- `A` 的规约层次大致是：`256 -> 128 -> 64 -> 32 -> 16 -> 8 -> 4 -> 2 -> 1`
+- `B` 的规约层次大致是：`128 -> 64 -> 32 -> 16 -> 8 -> 4 -> 2 -> 1`
+
+也就是说，`B` 每个 CTA 少做一轮：
+
+- 条件判断
+- shared-memory 加法
+- `__syncthreads()`
+
+这一点和报告中的结果是对齐的：
+
+- `Executed Instructions` 从 `56.49M` 降到 `51.64M`
+- `Branch Instructions` 从 `5.31M` 降到 `4.85M`
+- `SM Active Cycles` 从 `963812` 降到 `873493`
+
+根本原因不是内存层次发生了结构性变化，而是**每个 CTA 完成自身 reduction 所需的控制流、同步和 shared-memory 操作更少了**。
+
+### 第二主因：虽然 block 数翻倍，但总线程数不变，硬件饱和程度几乎没变
+
+因为两者总线程数相同，但每个 block 的 thread 数不同：
+
+- `A`: `65536` blocks，每个 block `256` threads
+- `B`: `131072` blocks，每个 block `128` threads
+
+这意味着：
+
+1. `B` 的 block 数翻倍，但 `Threads` 总数仍然相同
+2. `Waves Per SM` 两者都还是 `409.60`
+3. `Max Bandwidth` 两者都在 `76%` 左右
+4. `Issue Slots Busy` 也几乎一样
+
+这说明：
+
+- GPU 的总体并行规模没有变
+- memory hierarchy 的总体利用形态也没有本质变化
+- `B` 的收益主要来自“每个 CTA 更省指令”，而不是“整个芯片被喂得更多”
+
+这也是为什么：
+
+- `Memory Throughput` 从 `111.60` 升到 `120.66 GB/s`
+- 但 `Max Bandwidth` 基本不变
+
+也就是说，`B` 不是把 memory roof 再往上推了一截，而是在接近相同带宽利用率的前提下，用更少时间完成了同样规模的 pass。
+
+### 为什么 B 的 memory throughput 更高而 max bandwidth 基本不变
+
+在新的 release 对比里，真正的现象是：
+
+- `Memory Throughput: 111.60 -> 120.66 GB/s`
+- `Max Bandwidth: 76.73% -> 76.39%`
+
+也就是说：
+
+- 实际吞吐更高了
+- 但相对峰值带宽利用率几乎没变
+
+两者的 global access pattern 本身仍然是规则的：
+
+- load 仍然是连续的
+- add-during-load 仍然成立
+- shared memory 访问模式也没有退化回 bank conflict 模式
+
+真正的问题是：
+
+- `B` 的执行时间更短
+- 总处理数据规模不变
+- 因而 `GB/s = bytes / time` 自然会略升
+
+换句话说，`B` 并没有改变 memory subsystem 的上限位置，而是**在差不多相同的 bandwidth utilization 下，把同一轮 reduction pass 做得更快一些**。
+
+这点可以从这些指标看出来：
+
+- `Issue Slots Busy` 基本持平
+- `Memory Throughput` 上升
+- `Max Bandwidth` 基本持平
+- `Executed Instructions` 下降
+
+因此 roofline 角度下，`A` 和 `B` 仍然都属于低 arithmetic intensity、远离 FP32 roof 的同一类 kernel；`B` 只是沿着“减少总工作量”的方向又向前走了一小步。
+
+### 关于 occupancy 和 eligible warps 为什么没有同步变好
+
+`B` 并不是所有指标都比 `A` 更漂亮：
+
+- `Achieved Occupancy` 略低：`90.41% -> 89.28%`
+- `Eligible Warps / Scheduler` 略低：`0.60 -> 0.54`
+
+这说明 `128-thread` block 并没有从调度层面带来明显红利。根本原因是：
+
+- 这个 kernel 仍然有同步和依赖链
+- 只是单 CTA 的工作量略减
+- 但 warp scheduler 的整体画像并没有被根本改写
+
+所以 `B` 的收益是“总指令数和总周期更少”，不是“occupancy 或调度效率显著更优”。
+
+### 当前最可靠的结论
+
+基于现有报告，`v4 A` 和 `v4 B` 的根本差异可以分成两层：
+
+1. **主导因素：B 的 CTA 更小，shared-memory reduction 少一层**
+  - 动态指令数下降
+  - branch 指令下降
+  - CTA 内同步和控制开销下降
+
+2. **平衡因素：B 的 block 数翻倍，调度画像并没有显著改善**
+  - occupancy 没有更高
+  - eligible warps 没有更高
+  - bandwidth utilization 也没有明显更高
+
+所以，当前观测到的 `B` 比 `A` 略快，**最核心的原因不是 GPU 被更充分利用了，而是每个 CTA 的 reduction 树更浅，单 CTA 工作量略少。**
+
+更严格的结论应该是：
+
+**在当前 release 对比里，`128 threads/block` 的 `v4 B` 相比 `256 threads/block` 的 `v4 A` 有小幅优势；根本原因是更浅的 reduction tree 减少了 CTA 内的指令与同步开销，而不是 roofline 或 occupancy 层面发生了质变。**
+
+### 如果要做严格的 A/B block-size 对比
+
+建议后续补一个严格版本：
+
+1. `A` 和 `B` 都保持相同的 release 编译选项
+2. 都保留相同的错误检查和相同的数据规模
+3. 只改变 `THREADS_PER_BLOCK`
+4. 再比较：
+  - `Duration`
+  - `Executed Instructions`
+  - `Eligible Warps / Scheduler`
+  - `Warp Stall` 原因
+  - `Memory Throughput`
+  - `Max Bandwidth`
+
+只有在这个前提下，才能把差异主要归因于 `128 vs 256 threads/block`。
+
+---
+
 ## 5. 从 v0 到 v4 的总体规律
 
 可以把整个优化过程概括为四类问题的依次清除：

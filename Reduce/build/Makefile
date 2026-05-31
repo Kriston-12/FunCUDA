@@ -117,41 +117,41 @@ depend:
 .PHONY : depend
 
 #=============================================================================
-# Target rules for targets named my_reduce_v4_add_during_load
+# Target rules for targets named my_reduce_v4_add_during_load_B
 
 # Build rule for target.
-my_reduce_v4_add_during_load: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v4_add_during_load
-.PHONY : my_reduce_v4_add_during_load
+my_reduce_v4_add_during_load_B: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v4_add_during_load_B
+.PHONY : my_reduce_v4_add_during_load_B
 
 # fast build rule for target.
-my_reduce_v4_add_during_load/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/build
-.PHONY : my_reduce_v4_add_during_load/fast
+my_reduce_v4_add_during_load_B/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/build
+.PHONY : my_reduce_v4_add_during_load_B/fast
 
-my_reduce_v4_add_during_load.o: my_reduce_v4_add_during_load.cu.o
-.PHONY : my_reduce_v4_add_during_load.o
+my_reduce_v4_add_during_load_B.o: my_reduce_v4_add_during_load_B.cu.o
+.PHONY : my_reduce_v4_add_during_load_B.o
 
 # target to build an object file
-my_reduce_v4_add_during_load.cu.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.o
-.PHONY : my_reduce_v4_add_during_load.cu.o
+my_reduce_v4_add_during_load_B.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/my_reduce_v4_add_during_load_B.cu.o
+.PHONY : my_reduce_v4_add_during_load_B.cu.o
 
-my_reduce_v4_add_during_load.i: my_reduce_v4_add_during_load.cu.i
-.PHONY : my_reduce_v4_add_during_load.i
+my_reduce_v4_add_during_load_B.i: my_reduce_v4_add_during_load_B.cu.i
+.PHONY : my_reduce_v4_add_during_load_B.i
 
 # target to preprocess a source file
-my_reduce_v4_add_during_load.cu.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.i
-.PHONY : my_reduce_v4_add_during_load.cu.i
+my_reduce_v4_add_during_load_B.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/my_reduce_v4_add_during_load_B.cu.i
+.PHONY : my_reduce_v4_add_during_load_B.cu.i
 
-my_reduce_v4_add_during_load.s: my_reduce_v4_add_during_load.cu.s
-.PHONY : my_reduce_v4_add_during_load.s
+my_reduce_v4_add_during_load_B.s: my_reduce_v4_add_during_load_B.cu.s
+.PHONY : my_reduce_v4_add_during_load_B.s
 
 # target to generate assembly for a file
-my_reduce_v4_add_during_load.cu.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load.dir/build.make CMakeFiles/my_reduce_v4_add_during_load.dir/my_reduce_v4_add_during_load.cu.s
-.PHONY : my_reduce_v4_add_during_load.cu.s
+my_reduce_v4_add_during_load_B.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/my_reduce_v4_add_during_load_B.cu.s
+.PHONY : my_reduce_v4_add_during_load_B.cu.s
 
 # Help Target
 help:
@@ -161,10 +161,10 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
-	@echo "... my_reduce_v4_add_during_load"
-	@echo "... my_reduce_v4_add_during_load.o"
-	@echo "... my_reduce_v4_add_during_load.i"
-	@echo "... my_reduce_v4_add_during_load.s"
+	@echo "... my_reduce_v4_add_during_load_B"
+	@echo "... my_reduce_v4_add_during_load_B.o"
+	@echo "... my_reduce_v4_add_during_load_B.i"
+	@echo "... my_reduce_v4_add_during_load_B.s"
 .PHONY : help
 
 

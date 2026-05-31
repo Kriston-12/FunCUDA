@@ -32,4 +32,6 @@ endfunction()
 
 # add_reduce_executable(my_reduce_v3_no_bank_conflict my_reduce_v3_no_bank_conflict.cu)
 
-add_reduce_executable(my_reduce_v4_add_during_load my_reduce_v4_add_during_load.cu)
+# add_reduce_executable(my_reduce_v4_add_during_load_A my_reduce_v4_add_during_load_A.cu)
+
+add_reduce_executable(my_reduce_v4_add_during_load_B my_reduce_v4_add_during_load_B.cu)
