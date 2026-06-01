@@ -53,4 +53,5 @@ set(CMAKE_MAKEFILE_PRODUCTS
 # Dependency information for all targets:
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/my_reduce_v4_add_during_load_B.dir/DependInfo.cmake"
+  "CMakeFiles/my_reduce_v5_unroll_last_warp.dir/DependInfo.cmake"
   )

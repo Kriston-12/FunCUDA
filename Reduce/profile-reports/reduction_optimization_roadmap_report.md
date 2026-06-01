@@ -582,9 +582,169 @@ v4 仍然不接近 FP32 roof：
 
 ---
 
-## 5. 从 v0 到 v4 的总体规律
+## 4.7 v5: unroll last warp，去掉最后一个 warp 的同步开销
 
-可以把整个优化过程概括为四类问题的依次清除：
+### 代码变化
+
+`v5` 基于 `v4 B`，核心变化有两点：
+
+1. 只在 `i > 32` 时继续做 block 级 reduction 和 `__syncthreads()`：
+
+```cpp
+for (int i = blockDim.x / 2; i > 32; i >>= 1) {
+  if (threadIdx.x < i) {
+    sdata[threadIdx.x] += sdata[threadIdx.x + i];
+  }
+  __syncthreads();
+}
+```
+
+2. 当只剩最后一个 warp 时，改成手工展开，不再继续插入 block 级 barrier：
+
+```cpp
+if (threadIdx.x < 32) {
+  sdata[threadIdx.x] += sdata[threadIdx.x + 32];
+  sdata[threadIdx.x] += sdata[threadIdx.x + 16];
+  sdata[threadIdx.x] += sdata[threadIdx.x + 8];
+  sdata[threadIdx.x] += sdata[threadIdx.x + 4];
+  sdata[threadIdx.x] += sdata[threadIdx.x + 2];
+  sdata[threadIdx.x] += sdata[threadIdx.x + 1];
+}
+```
+
+同时，`v5` 把 shared memory 声明成：
+
+```cpp
+volatile __shared__ float sdata[THREADS_PER_BLOCK];
+```
+
+### 指标对比（v4 B -> v5）
+
+| 指标 | v4 B | v5 | 观察 |
+|---|---:|---:|---|
+| Block Size | 128 | 128 | 相同 |
+| Grid Size | 131072 | 131072 | 相同 |
+| Duration | 1.50 ms | 897.34 us | v5 约 `-40.2%` |
+| SM Active Cycles | 873493 | 519541 | v5 约 `-40.5%` |
+| Executed Instructions | 51.64M | 26.48M | v5 约 `-48.7%` |
+| Branch Instructions | 4.85M | 2.75M | v5 明显下降 |
+| Memory Throughput | 120.66 GB/s | 177.55 GB/s | v5 显著更高 |
+| Max Bandwidth | 76.39% | 59.97% | v5 反而更低 |
+| Issue Slots Busy | 36.89% | 31.56% | v5 略低 |
+| Achieved Occupancy | 89.28% | 68.02% | v5 明显更低 |
+| Active Warps / Scheduler | 7.07 | 5.39 | v5 更低 |
+| Eligible Warps / Scheduler | 0.54 | 0.43 | v5 更低 |
+
+### 根本原因：v5 继续沿着“减少总工作量”而不是“提高瞬时利用率”优化
+
+`v5` 的提升非常明显，但它的提升方式和 `v4`、`v4 B` 是同一条主线：
+
+- 不是把 occupancy 拉高
+- 不是把 scheduler 的 eligible warps 变多
+- 也不是把 kernel 推到更接近 compute roof
+
+真正的原因是：
+
+**它把最后一个 warp 内部的 reduction 从“多轮 block 级同步 + 循环控制”改成了“单 warp 内的直线展开代码”，从而显著减少了动态指令数、分支数和 barrier 相关开销。**
+
+这和报告中的结果完全一致：
+
+- `Executed Instructions` 近乎减半
+- `Branch Instructions` 显著下降
+- `Duration` 与 `SM Active Cycles` 同步下降约 40%
+
+也就是说，`v5` 快不是因为每个周期更忙，而是因为为了完成同样一个 reduction pass，GPU 需要做的事情更少了。
+
+### 为什么 v5 的 occupancy 和 issue 指标反而更低，但仍然更快
+
+这组数据最容易让人误解：
+
+- `Achieved Occupancy: 89.28% -> 68.02%`
+- `Issue Slots Busy: 36.89% -> 31.56%`
+- `Active Warps / Scheduler: 7.07 -> 5.39`
+
+看上去更“空”，但运行却更快。
+
+根本原因是：
+
+- `v5` 去掉了最后一个 warp 阶段的大量同步和控制流
+- 线程更早完成，warp 更早退出活跃状态
+- 因而从统计意义上看，平均 active warps、achieved occupancy 会下降
+
+这不是坏事，而是这种优化的正常副作用：
+
+- workload 总量变少了
+- 平均驻留/活跃线程数也会随之下降
+- 但总执行时间更短
+
+所以这里的正确解读不是“occupancy 变差导致 kernel 变差”，而是：
+
+**kernel 变短了，所以统计到的平均活跃 warp 数更低。**
+
+### 为什么 v5 的 memory throughput 更高，但 max bandwidth 更低
+
+`v5` 的一个表面上“反直觉”的现象是：
+
+- `Memory Throughput` 从 `120.66` 升到 `177.55 GB/s`
+- `Max Bandwidth` 却从 `76.39%` 降到 `59.97%`
+
+这说明两者衡量的不是同一个维度：
+
+- `Memory Throughput (GB/s)` 看的是实际吞吐绝对值
+- `Max Bandwidth (%)` 看的是相对峰值带宽利用率
+
+在 `v5` 里：
+
+- kernel 时间明显缩短
+- 同时执行的指令和控制流更少
+- 实际数据搬运更集中
+
+所以绝对 `GB/s` 会升高；但整个 kernel 的平均利用画像更短、更轻，未必需要长时间把最忙的 memory path 维持在更高百分比上，因此 `Max Bandwidth` 反而可能下降。
+
+这里最重要的结论是：
+
+**v5 的收益主导项仍然是“减少同步和指令总量”，而不是“把带宽利用率继续抬高”。**
+
+### 为什么最后一个 warp 阶段需要 `volatile __shared__` 
+
+这一点需要精炼但准确地说明。
+
+当只剩最后一个 warp 时，代码不再使用 `__syncthreads()`，而是依赖：
+
+- warp 内线程 lockstep 执行
+- 相邻 lane 对 shared memory 的写入会被同一 warp 的后续读看到
+
+但如果 `sdata` 不是 `volatile`，编译器可能会做寄存器缓存和重用优化，例如：
+
+- 把某次从 `sdata[threadIdx.x]` 读出的值缓存到寄存器
+- 假设中间没有“可见的跨线程同步点”
+- 于是后面的表达式继续使用旧寄存器值，而不是重新从 shared memory 取值
+
+这样就会破坏最后一个 warp 里“线程 A 刚写完，线程 B 下一步就读到更新值”的假设。
+
+所以这里 `volatile __shared__` 的根本作用不是泛泛地“防止优化”，而是：
+
+**强制编译器把这些访问当作每次都可能被其它 lane 更新过的 shared-memory 访问，避免把本应重新从 shared memory 读取的值长期保存在寄存器里。**
+
+一句话总结：
+
+**在 unroll last warp 阶段，没有 `__syncthreads()` 作为编译器和硬件都能识别的 block 级同步点，因此需要 `volatile` 阻止编译器把跨-lane 可见的 shared-memory 更新错误地寄存器化。**
+
+### 当前最可靠的结论
+
+`v5` 相比 `v4 B` 的根本提升可以概括为：
+
+- 去掉最后一个 warp 阶段的 block 级同步
+- 去掉最后几轮 reduction 的循环控制开销
+- 用 `volatile __shared__` 保证 warp 内展开阶段的 shared-memory 可见性语义不被编译器破坏
+
+因此 `v5` 在同样的 `128-thread` 配置下，把单 pass 时间从 `1.50 ms` 继续压到了 `897.34 us`。
+
+---
+
+## 5. 从 v0 到 v5 的总体规律
+
+可以把整个优化过程概括为五类问题的依次清除：
 
 ### 第一阶段：去掉最昂贵的 global memory 中间态
 - `v0 -> v1`
@@ -602,6 +762,10 @@ v4 仍然不接近 FP32 roof：
 - `v3 -> v4`
 - 核心收益：把第一层 reduction 融合到 load 阶段，直接让 grid 与动态工作量减半
 
+### 第五阶段：去掉最后一个 warp 的 block 级同步
+- `v4 -> v5`
+- 核心收益：把最后一个 warp 的 reduction 展开成直线代码，减少同步、分支和循环控制开销
+
 ---
 
 ## 6. 结合 roofline 的统一结论
@@ -618,11 +782,12 @@ v4 仍然不接近 FP32 roof：
 2. **再修正片上 shared memory 的访问模式**
 3. **最后通过算法分解减少总工作量**
 
-这三类优化分别对应：
+这几类优化分别对应：
 
 - `v1`：数据放到更近的地方做
 - `v3`：数据在 shared memory 里也要按 bank 友好的方式访问
 - `v4`：让每个 block 完成更多有效归约，减少全局启动与中间结果规模
+- `v5`：让最后一个 warp 用更少的同步和控制流完成同样的归约
 
 ---
 
@@ -682,8 +847,9 @@ v4 仍然不接近 FP32 roof：
 - `v2` 证明了 shared memory 访问模式错误会抵消控制流优化收益
 - `v3` 通过 bank-friendly sequential addressing 获得了显著提升
 - `v4` 则进一步从算法层减少总 block 数、总线程数和总指令数，带来接近翻倍的单 pass 提速
+- `v5` 则继续在 warp 级别消掉最后几轮同步与控制流，把单 pass 时间进一步压缩
 
-到 `v4` 为止，这个 reduction kernel 已经从“低效的 naive 实现”走到了“访存模式和工作量都更合理的优化版本”。
+到 `v5` 为止，这个 reduction kernel 已经从“低效的 naive 实现”走到了“访存模式、同步方式和总工作量都更合理的优化版本”。
 
 如果继续往下做，最值得追求的不是更高的 occupancy，而是：
 

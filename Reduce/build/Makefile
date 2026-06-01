@@ -129,6 +129,19 @@ my_reduce_v4_add_during_load_B/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/build
 .PHONY : my_reduce_v4_add_during_load_B/fast
 
+#=============================================================================
+# Target rules for targets named my_reduce_v5_unroll_last_warp
+
+# Build rule for target.
+my_reduce_v5_unroll_last_warp: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v5_unroll_last_warp
+.PHONY : my_reduce_v5_unroll_last_warp
+
+# fast build rule for target.
+my_reduce_v5_unroll_last_warp/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build
+.PHONY : my_reduce_v5_unroll_last_warp/fast
+
 my_reduce_v4_add_during_load_B.o: my_reduce_v4_add_during_load_B.cu.o
 .PHONY : my_reduce_v4_add_during_load_B.o
 
@@ -153,6 +166,30 @@ my_reduce_v4_add_during_load_B.cu.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v4_add_during_load_B.dir/build.make CMakeFiles/my_reduce_v4_add_during_load_B.dir/my_reduce_v4_add_during_load_B.cu.s
 .PHONY : my_reduce_v4_add_during_load_B.cu.s
 
+my_reduce_v5_unroll_last_warp.o: my_reduce_v5_unroll_last_warp.cu.o
+.PHONY : my_reduce_v5_unroll_last_warp.o
+
+# target to build an object file
+my_reduce_v5_unroll_last_warp.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/my_reduce_v5_unroll_last_warp.cu.o
+.PHONY : my_reduce_v5_unroll_last_warp.cu.o
+
+my_reduce_v5_unroll_last_warp.i: my_reduce_v5_unroll_last_warp.cu.i
+.PHONY : my_reduce_v5_unroll_last_warp.i
+
+# target to preprocess a source file
+my_reduce_v5_unroll_last_warp.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/my_reduce_v5_unroll_last_warp.cu.i
+.PHONY : my_reduce_v5_unroll_last_warp.cu.i
+
+my_reduce_v5_unroll_last_warp.s: my_reduce_v5_unroll_last_warp.cu.s
+.PHONY : my_reduce_v5_unroll_last_warp.s
+
+# target to generate assembly for a file
+my_reduce_v5_unroll_last_warp.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/my_reduce_v5_unroll_last_warp.cu.s
+.PHONY : my_reduce_v5_unroll_last_warp.cu.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -162,9 +199,13 @@ help:
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
 	@echo "... my_reduce_v4_add_during_load_B"
+	@echo "... my_reduce_v5_unroll_last_warp"
 	@echo "... my_reduce_v4_add_during_load_B.o"
 	@echo "... my_reduce_v4_add_during_load_B.i"
 	@echo "... my_reduce_v4_add_during_load_B.s"
+	@echo "... my_reduce_v5_unroll_last_warp.o"
+	@echo "... my_reduce_v5_unroll_last_warp.i"
+	@echo "... my_reduce_v5_unroll_last_warp.s"
 .PHONY : help
 
 
