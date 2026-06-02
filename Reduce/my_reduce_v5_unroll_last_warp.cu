@@ -30,8 +30,17 @@ void cpu_reduce(float* input, float* output, int blockNum) {
     }
 }
 
+__device__ void warp_reduce(volatile float* sdata, int tid) {
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 32];
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 16];
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 8];
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 4];
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 2];
+    sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 1];
+}
+
 __global__ void reduce_shared_mem(float* input, float* output) {
-    volatile __shared__ float sdata[THREADS_PER_BLOCK];
+    __shared__ float sdata[THREADS_PER_BLOCK];
     float *blockstart = input + blockIdx.x * blockDim.x * 2;
     sdata[threadIdx.x] = blockstart[threadIdx.x] + blockstart[threadIdx.x + blockDim.x];
     __syncthreads();
@@ -43,12 +52,7 @@ __global__ void reduce_shared_mem(float* input, float* output) {
     }
 
     if (threadIdx.x < 32) { // < not <=, bc x = [0, 31]
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 32];
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 16];
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 8];
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 4];
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 2];
-        sdata[threadIdx.x] = sdata[threadIdx.x] + sdata[threadIdx.x + 1];
+        warp_reduce(sdata, threadIdx.x);
     }
 
     if (threadIdx.x == 0) {
