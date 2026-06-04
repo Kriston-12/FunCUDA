@@ -65,6 +65,9 @@ CMAKE_BINARY_DIR = /home/ubuntu/FunCUDA/Reduce/build
 # The main recursive "all" target.
 all: CMakeFiles/my_reduce_v4_add_during_load_B.dir/all
 all: CMakeFiles/my_reduce_v5_unroll_last_warp.dir/all
+all: CMakeFiles/my_reduce_v6_complete_unroll.dir/all
+all: CMakeFiles/my_reduce_v7_multi_add.dir/all
+all: CMakeFiles/my_reduce_v8_shuffle.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -74,6 +77,9 @@ preinstall:
 # The main recursive "clean" target.
 clean: CMakeFiles/my_reduce_v4_add_during_load_B.dir/clean
 clean: CMakeFiles/my_reduce_v5_unroll_last_warp.dir/clean
+clean: CMakeFiles/my_reduce_v6_complete_unroll.dir/clean
+clean: CMakeFiles/my_reduce_v7_multi_add.dir/clean
+clean: CMakeFiles/my_reduce_v8_shuffle.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -127,6 +133,84 @@ my_reduce_v5_unroll_last_warp: CMakeFiles/my_reduce_v5_unroll_last_warp.dir/rule
 CMakeFiles/my_reduce_v5_unroll_last_warp.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/clean
 .PHONY : CMakeFiles/my_reduce_v5_unroll_last_warp.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/my_reduce_v6_complete_unroll.dir
+
+# All Build rule for target.
+CMakeFiles/my_reduce_v6_complete_unroll.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles --progress-num=5,6 "Built target my_reduce_v6_complete_unroll"
+.PHONY : CMakeFiles/my_reduce_v6_complete_unroll.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/my_reduce_v6_complete_unroll.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/my_reduce_v6_complete_unroll.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 0
+.PHONY : CMakeFiles/my_reduce_v6_complete_unroll.dir/rule
+
+# Convenience name for target.
+my_reduce_v6_complete_unroll: CMakeFiles/my_reduce_v6_complete_unroll.dir/rule
+.PHONY : my_reduce_v6_complete_unroll
+
+# clean rule for target.
+CMakeFiles/my_reduce_v6_complete_unroll.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/clean
+.PHONY : CMakeFiles/my_reduce_v6_complete_unroll.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/my_reduce_v7_multi_add.dir
+
+# All Build rule for target.
+CMakeFiles/my_reduce_v7_multi_add.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles --progress-num=7,8 "Built target my_reduce_v7_multi_add"
+.PHONY : CMakeFiles/my_reduce_v7_multi_add.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/my_reduce_v7_multi_add.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/my_reduce_v7_multi_add.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 0
+.PHONY : CMakeFiles/my_reduce_v7_multi_add.dir/rule
+
+# Convenience name for target.
+my_reduce_v7_multi_add: CMakeFiles/my_reduce_v7_multi_add.dir/rule
+.PHONY : my_reduce_v7_multi_add
+
+# clean rule for target.
+CMakeFiles/my_reduce_v7_multi_add.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/clean
+.PHONY : CMakeFiles/my_reduce_v7_multi_add.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/my_reduce_v8_shuffle.dir
+
+# All Build rule for target.
+CMakeFiles/my_reduce_v8_shuffle.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles --progress-num=9,10 "Built target my_reduce_v8_shuffle"
+.PHONY : CMakeFiles/my_reduce_v8_shuffle.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/my_reduce_v8_shuffle.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 2
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/my_reduce_v8_shuffle.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/ubuntu/FunCUDA/Reduce/build/CMakeFiles 0
+.PHONY : CMakeFiles/my_reduce_v8_shuffle.dir/rule
+
+# Convenience name for target.
+my_reduce_v8_shuffle: CMakeFiles/my_reduce_v8_shuffle.dir/rule
+.PHONY : my_reduce_v8_shuffle
+
+# clean rule for target.
+CMakeFiles/my_reduce_v8_shuffle.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/clean
+.PHONY : CMakeFiles/my_reduce_v8_shuffle.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.

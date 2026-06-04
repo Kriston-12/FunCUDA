@@ -142,6 +142,45 @@ my_reduce_v5_unroll_last_warp/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build
 .PHONY : my_reduce_v5_unroll_last_warp/fast
 
+#=============================================================================
+# Target rules for targets named my_reduce_v6_complete_unroll
+
+# Build rule for target.
+my_reduce_v6_complete_unroll: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v6_complete_unroll
+.PHONY : my_reduce_v6_complete_unroll
+
+# fast build rule for target.
+my_reduce_v6_complete_unroll/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/build
+.PHONY : my_reduce_v6_complete_unroll/fast
+
+#=============================================================================
+# Target rules for targets named my_reduce_v7_multi_add
+
+# Build rule for target.
+my_reduce_v7_multi_add: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v7_multi_add
+.PHONY : my_reduce_v7_multi_add
+
+# fast build rule for target.
+my_reduce_v7_multi_add/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/build
+.PHONY : my_reduce_v7_multi_add/fast
+
+#=============================================================================
+# Target rules for targets named my_reduce_v8_shuffle
+
+# Build rule for target.
+my_reduce_v8_shuffle: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 my_reduce_v8_shuffle
+.PHONY : my_reduce_v8_shuffle
+
+# fast build rule for target.
+my_reduce_v8_shuffle/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/build
+.PHONY : my_reduce_v8_shuffle/fast
+
 my_reduce_v4_add_during_load_B.o: my_reduce_v4_add_during_load_B.cu.o
 .PHONY : my_reduce_v4_add_during_load_B.o
 
@@ -190,6 +229,78 @@ my_reduce_v5_unroll_last_warp.cu.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v5_unroll_last_warp.dir/build.make CMakeFiles/my_reduce_v5_unroll_last_warp.dir/my_reduce_v5_unroll_last_warp.cu.s
 .PHONY : my_reduce_v5_unroll_last_warp.cu.s
 
+my_reduce_v6_complete_unroll.o: my_reduce_v6_complete_unroll.cu.o
+.PHONY : my_reduce_v6_complete_unroll.o
+
+# target to build an object file
+my_reduce_v6_complete_unroll.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/my_reduce_v6_complete_unroll.cu.o
+.PHONY : my_reduce_v6_complete_unroll.cu.o
+
+my_reduce_v6_complete_unroll.i: my_reduce_v6_complete_unroll.cu.i
+.PHONY : my_reduce_v6_complete_unroll.i
+
+# target to preprocess a source file
+my_reduce_v6_complete_unroll.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/my_reduce_v6_complete_unroll.cu.i
+.PHONY : my_reduce_v6_complete_unroll.cu.i
+
+my_reduce_v6_complete_unroll.s: my_reduce_v6_complete_unroll.cu.s
+.PHONY : my_reduce_v6_complete_unroll.s
+
+# target to generate assembly for a file
+my_reduce_v6_complete_unroll.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v6_complete_unroll.dir/build.make CMakeFiles/my_reduce_v6_complete_unroll.dir/my_reduce_v6_complete_unroll.cu.s
+.PHONY : my_reduce_v6_complete_unroll.cu.s
+
+my_reduce_v7_multi_add.o: my_reduce_v7_multi_add.cu.o
+.PHONY : my_reduce_v7_multi_add.o
+
+# target to build an object file
+my_reduce_v7_multi_add.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/my_reduce_v7_multi_add.cu.o
+.PHONY : my_reduce_v7_multi_add.cu.o
+
+my_reduce_v7_multi_add.i: my_reduce_v7_multi_add.cu.i
+.PHONY : my_reduce_v7_multi_add.i
+
+# target to preprocess a source file
+my_reduce_v7_multi_add.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/my_reduce_v7_multi_add.cu.i
+.PHONY : my_reduce_v7_multi_add.cu.i
+
+my_reduce_v7_multi_add.s: my_reduce_v7_multi_add.cu.s
+.PHONY : my_reduce_v7_multi_add.s
+
+# target to generate assembly for a file
+my_reduce_v7_multi_add.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v7_multi_add.dir/build.make CMakeFiles/my_reduce_v7_multi_add.dir/my_reduce_v7_multi_add.cu.s
+.PHONY : my_reduce_v7_multi_add.cu.s
+
+my_reduce_v8_shuffle.o: my_reduce_v8_shuffle.cu.o
+.PHONY : my_reduce_v8_shuffle.o
+
+# target to build an object file
+my_reduce_v8_shuffle.cu.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/my_reduce_v8_shuffle.cu.o
+.PHONY : my_reduce_v8_shuffle.cu.o
+
+my_reduce_v8_shuffle.i: my_reduce_v8_shuffle.cu.i
+.PHONY : my_reduce_v8_shuffle.i
+
+# target to preprocess a source file
+my_reduce_v8_shuffle.cu.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/my_reduce_v8_shuffle.cu.i
+.PHONY : my_reduce_v8_shuffle.cu.i
+
+my_reduce_v8_shuffle.s: my_reduce_v8_shuffle.cu.s
+.PHONY : my_reduce_v8_shuffle.s
+
+# target to generate assembly for a file
+my_reduce_v8_shuffle.cu.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/my_reduce_v8_shuffle.dir/build.make CMakeFiles/my_reduce_v8_shuffle.dir/my_reduce_v8_shuffle.cu.s
+.PHONY : my_reduce_v8_shuffle.cu.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -200,12 +311,24 @@ help:
 	@echo "... rebuild_cache"
 	@echo "... my_reduce_v4_add_during_load_B"
 	@echo "... my_reduce_v5_unroll_last_warp"
+	@echo "... my_reduce_v6_complete_unroll"
+	@echo "... my_reduce_v7_multi_add"
+	@echo "... my_reduce_v8_shuffle"
 	@echo "... my_reduce_v4_add_during_load_B.o"
 	@echo "... my_reduce_v4_add_during_load_B.i"
 	@echo "... my_reduce_v4_add_during_load_B.s"
 	@echo "... my_reduce_v5_unroll_last_warp.o"
 	@echo "... my_reduce_v5_unroll_last_warp.i"
 	@echo "... my_reduce_v5_unroll_last_warp.s"
+	@echo "... my_reduce_v6_complete_unroll.o"
+	@echo "... my_reduce_v6_complete_unroll.i"
+	@echo "... my_reduce_v6_complete_unroll.s"
+	@echo "... my_reduce_v7_multi_add.o"
+	@echo "... my_reduce_v7_multi_add.i"
+	@echo "... my_reduce_v7_multi_add.s"
+	@echo "... my_reduce_v8_shuffle.o"
+	@echo "... my_reduce_v8_shuffle.i"
+	@echo "... my_reduce_v8_shuffle.s"
 .PHONY : help
 
 

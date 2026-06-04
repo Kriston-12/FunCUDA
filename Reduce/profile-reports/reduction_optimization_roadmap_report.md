@@ -742,9 +742,577 @@ volatile __shared__ float sdata[THREADS_PER_BLOCK];
 
 ---
 
-## 5. 从 v0 到 v5 的总体规律
+## 4.8 v6: complete unroll，为什么几乎没有继续提升
 
-可以把整个优化过程概括为五类问题的依次清除：
+### 代码变化
+
+`v6` 在 `v5` 基础上继续把 reduction 主体写成完全展开形式。关键变化是：
+
+- 不再保留 block 级 reduction 的 loop 结构
+- 直接写成 `if (threadIdx.x < 64)` 的固定阶段
+- 最后 32 个线程仍然走 warp-level unroll
+
+核心代码等价于：
+
+```cpp
+if (threadIdx.x < 64) {
+   sdata[threadIdx.x] += sdata[threadIdx.x + 64];
+   __syncthreads();
+}
+
+if (threadIdx.x < 32) {
+   warp_reduce(sdata, threadIdx.x);
+}
+```
+
+### 指标对比（v5 -> v6）
+
+| 指标 | v5 | v6 | 观察 |
+|---|---:|---:|---|
+| Block Size | 128 | 128 | 相同 |
+| Grid Size | 131072 | 131072 | 相同 |
+| Duration | 897.34 us | 879.07 us | 仅约 `-2.0%` |
+| SM Active Cycles | 519541 | 514583 | 几乎持平 |
+| Executed Instructions | 26.48M | 21.10M | 明显下降，约 `-20.3%` |
+| Branch Instructions | 2.75M | 2.23M | 明显下降 |
+| Memory Throughput | 177.55 GB/s | 185.19 GB/s | 小幅上升 |
+| Max Bandwidth | 59.97% | 60.46% | 基本持平 |
+| Issue Slots Busy | 31.56% | 25.35% | 反而下降 |
+| Eligible Warps / Scheduler | 0.43 | 0.34 | 反而下降 |
+| Achieved Occupancy | 68.02% | 66.00% | 略低 |
+| Warp Cycles Per Issued Instruction | 16.72 | 20.06 | 变差 |
+
+### 第一主因：对 `128-thread` 配置来说，v5 本来就几乎已经“全展开”了
+
+这是这次结果最关键的原因。
+
+在 `THREADS_PER_BLOCK = 128` 时，`v5` 里的这段 loop：
+
+```cpp
+for (int i = blockDim.x / 2; i > 32; i >>= 1)
+```
+
+实际上只会执行一次：
+
+- `i = 64` 时执行
+- 下一次 `i = 32`，条件 `i > 32` 不再成立
+
+也就是说，对 `128-thread` block 来说：
+
+- `v5` 并不是还有很多 loop 层次没展开
+- 它只剩下一次 `64 -> 32` 的 block 级 reduction
+- 最昂贵的尾部部分在 `v5` 已经被 unroll 成 warp 直线代码了
+
+因此，`v6` 所谓的 “complete unroll” 真正能额外去掉的，主要只是：
+
+- 一点 loop 控制逻辑
+- 一点分支与索引计算
+
+这类开销相对整个 kernel 已经不大，所以理论上就不应该再期待像 `v4 -> v5` 那么大的收益。
+
+### 第二主因：v6 去掉了一部分指令，但没有触及主导 stall
+
+从报告看，`v6` 确实减少了不少动态指令：
+
+- `Executed Instructions: 26.48M -> 21.10M`
+- `Branch Instructions: 2.75M -> 2.23M`
+
+但对应的时间只改善了约 `2%`。
+
+这说明：
+
+**被去掉的这些指令，并不是决定总时间的主导项。**
+
+Nsight Compute 给出的主导 stall 反而是：
+
+- `Stall Wait` on `L1TEX` scoreboard dependency
+- `Warp Cycles Per Issued Instruction` 从 `16.72` 变到 `20.06`
+- `Eligible Warps / Scheduler` 从 `0.43` 下降到 `0.34`
+
+这说明 `v6` 的主要限制已经更偏向：
+
+- load/use 依赖链
+- shared/global memory 相关等待
+- warp 就绪度不足
+
+而不是 loop 本身的控制开销。
+
+换句话说，`v6` 优化掉的是“前端的一点语法性成本”，但 kernel 主要还在等数据和等依赖，所以 wall-clock 时间只能小幅改善。
+
+### 为什么指令少了很多，Issue Slots Busy 却更低
+
+这组数据也很容易让人困惑：
+
+- `Executed Instructions` 下降约 `20%`
+- 但 `Issue Slots Busy` 从 `31.56%` 降到 `25.35%`
+
+这并不矛盾。
+
+正确解释是：
+
+- 指令数减少并不自动意味着发射更连续
+- 如果剩下的指令之间依赖更紧、等待数据更明显
+- scheduler 反而会更频繁地遇到 “没有 ready warp 可发射”
+
+这和 `v6` 的其它指标是对齐的：
+
+- `No Eligible` 更高
+- `Eligible Warps / Scheduler` 更低
+- `Warp Cycles Per Issued Instruction` 更高
+
+所以这里看到的是：
+
+**v6 把一部分“便宜但可连续发射”的控制指令删掉了，剩下更大比例的是受数据依赖约束的指令，于是平均发射效率反而下降。**
+
+### 从 roofline 和架构角度看，为什么 v6 收益有限
+
+从 roofline 角度：
+
+- `v5` 和 `v6` 都只有大约 `2%` 的 FP32 peak
+- 两者都远离 compute roof
+- 两者都还是低 arithmetic intensity 的 reduction kernel
+
+这意味着继续做“纯控制流压缩”时，边际收益会迅速减小。
+
+从架构角度：
+
+- `v5` 已经去掉了最后一个 warp 的 block 级 barrier
+- `v6` 没有继续减少 global load 数量
+- 也没有继续减少 shared-memory 数据依赖链长度
+- 也没有改善 warp-level 的数据等待模式
+
+所以 `v6` 没有碰到真正更重的瓶颈，只是把剩余的控制逻辑再削薄一点点。
+
+### 当前最可靠的结论
+
+`v6` 基本没有明显提升，根本原因可以概括为：
+
+1. **对 `128-thread` block 而言，`v5` 本来就只剩一个 block 级 reduction iteration，complete unroll 的可优化空间非常小。**
+2. **v6 虽然减少了指令和分支，但主导时间的瓶颈已经转向 L1TEX scoreboard dependency 和 warp readiness，不再是 loop/control overhead。**
+
+因此，`v6` 的表现非常符合“优化进入边际递减阶段”的特征：
+
+- 指令统计继续变好
+- 但总时间几乎不再明显下降
+
+### 对后续版本的启示
+
+`v6` 的结果其实给了一个很明确的方向：
+
+- 再继续做手工展开，收益大概率很小
+- 下一步更值得尝试的是改变数据交换方式，而不是继续压缩 loop 语法
+
+更值得做的方向是：
+
+1. warp shuffle (`__shfl_down_sync`) 版本
+  - 目标：减少最后一个 warp 对 shared memory 的依赖
+
+2. 更宽的 load / vectorized load
+  - 目标：进一步优化数据搬运效率
+
+3. 完整多-pass reduction 的总时间评估
+  - 目标：确认单 pass 优化在整体 pipeline 上是否仍然划算
+
+---
+
+## 4.9 v7: multi-add，把更多输入先累加到 thread 局部再做 block reduction
+
+### 代码变化
+
+`v7` 相比 `v6` 的变化不是继续压缩尾部控制流，而是**改变每个 CTA 处理数据的粒度**。
+
+当前配置是：
+
+- `THREADS_PER_BLOCK = 256`
+- `block_num = 1024`
+- `NUM_ELEMENTS_PER_BLOCK = 32768`
+
+也就是说：
+
+- 每个 block 处理 `32768` 个输入元素
+- 每个 thread 在进入 shared-memory reduction 之前，先顺序累加多个 global 元素：
+
+```cpp
+sdata[threadIdx.x] = 0;
+for (int i = 0; i < NUM_ELEMENTS_PER_BLOCK / THREADS_PER_BLOCK; i++) {
+    sdata[threadIdx.x] += blockstart[threadIdx.x + i * THREADS_PER_BLOCK];
+}
+```
+
+然后再对这 `256` 个 thread-local partial sums 做 block 内 reduction。
+
+这和 `v4/v5/v6` 的核心思路不同：
+
+- `v4-v6` 更像是“每个 thread 先吃很少量数据，然后靠更多 block 去做并行归约”
+- `v7` 则改成“每个 thread 先在寄存器/线程局部把大量输入加起来，再输出更少的 partial sums”
+
+### 数值误差说明：为什么 `1e-2` 太严，`1` 又太松
+
+你当前看到的差异是：
+
+- 结果量级大约在 `16300 ~ 16400`
+- 绝对误差大约在 `0.01 ~ 0.06`
+
+这类误差对于 float reduction 是正常的，根本原因不是实现错，而是：
+
+- CPU 和 GPU 的加法顺序不同
+- floating-point 加法不满足结合律
+- `v7` 的线程局部累加顺序和之前版本差异更大
+
+因此，原来 `1e-2` 的绝对误差阈值对这种大规模求和偏严，容易把正常的舍入差异误判成错误；但直接放到 `1` 又偏松，会掩盖真正的实现问题。
+
+更合理的检查方式通常是：
+
+- 相对误差阈值
+- 或“绝对误差 + 相对误差”的混合阈值
+
+例如这类形式更合理：
+
+$$
+|a-b| \le \epsilon_{abs} + \epsilon_{rel} \cdot |b|
+$$
+
+对于当前这组结果，`0.01 ~ 0.06` 的误差占 `16300+` 的总和只在大约 $10^{-6}$ 量级，属于典型的浮点归约顺序差异。报告里这里只做简要记录，不把它归类为算法错误。
+
+### 指标对比（v6 -> v7）
+
+| 指标 | v6 | v7 | 观察 |
+|---|---:|---:|---|
+| Block Size | 128 | 256 | v7 block 更大 |
+| Grid Size | 131072 | 1024 | v7 block 数骤减 |
+| Threads | 16777216 | 262144 | v7 总线程数大幅下降 |
+| Duration | 879.07 us | 567.04 us | v7 约 `-35.5%` |
+| SM Active Cycles | 514583 | 323739 | v7 约 `-37.1%` |
+| Executed Instructions | 21.10M | 7.82M | v7 约 `-62.9%` |
+| Memory Throughput | 185.19 GB/s | 308.46 GB/s | v7 显著更高 |
+| DRAM Throughput | 57.12% | 98.01% | v7 接近 DRAM roof |
+| Max Bandwidth | 60.46% | 98.01% | v7 接近峰值带宽 |
+| Compute Throughput | 60.46% | 17.36% | v7 更明确地偏 memory-bound |
+| Issue Slots Busy | 25.35% | 14.87% | v7 更低 |
+| Achieved Occupancy | 66.00% | 95.19% | v7 更高 |
+| Registers Per Thread | 16 | 37 | v7 寄存器压力更高 |
+| Waves Per SM | 409.60 | 6.40 | v7 总波次骤减 |
+
+### 第一主因：v7 从“多 CTA 细粒度归约”切换到“少 CTA 粗粒度预聚合”
+
+这是 `v7` 快很多的根本原因。
+
+`v6` 的方式是：
+
+- 很多 CTA
+- 每个 CTA 吃很少量数据
+- 产生很多 partial sums
+
+`v7` 的方式是：
+
+- 只有 `1024` 个 CTA
+- 每个 CTA 吃 `32768` 个元素
+- 每个 thread 先顺序累加 `128` 个元素
+- block 内只需要对 `256` 个 partial sums 做一次 reduction
+
+这会带来两个直接结果：
+
+1. **中间 partial sums 数量大幅减少**
+2. **总 CTA / 总线程 / 总控制流开销大幅减少**
+
+这和数据完全一致：
+
+- `Threads` 从 `16777216` 降到 `262144`
+- `Executed Instructions` 从 `21.10M` 降到 `7.82M`
+- `Duration` 下降约 `35.5%`
+
+也就是说，`v7` 的主要收益不是某个小技巧，而是把 reduction 的工作分解方式改了：
+
+**先在线程局部把更多元素预聚合，再做 block reduction，从而显著减少全局并行层面需要管理的工作量。**
+
+### 第二主因：v7 把 kernel 推到了真正的 DRAM 带宽瓶颈附近
+
+`v7` 最显眼的变化是：
+
+- `Memory Throughput = 308.46 GB/s`
+- `DRAM Throughput = 98.01%`
+- `Max Bandwidth = 98.01%`
+
+这和之前版本完全不是一个阶段了。
+
+这说明：
+
+- `v4-v6` 更多是在减少同步、分支、局部控制流浪费
+- `v7` 则已经把 kernel 推到接近 DRAM roof 的位置
+
+换句话说，`v7` 的瓶颈已经非常明确：
+
+**不是 shared-memory tail，也不是 loop 控制，而是 DRAM 带宽本身。**
+
+这也是为什么 Nsight Compute 明确建议“从 DRAM 开始分析”。
+
+### 为什么 v7 的 Compute Throughput 和 Issue Slots Busy 更低，但仍然更快
+
+`v7` 里有一个非常重要但很容易误解的现象：
+
+- `Compute Throughput` 降到 `17.36%`
+- `Issue Slots Busy` 只有 `14.87%`
+- `Warp Cycles Per Issued Instruction` 升到 `50.26`
+
+看上去更“不忙”，但 kernel 却更快。
+
+根本原因是：
+
+- `v7` 把问题几乎纯化成了一个 DRAM streaming 问题
+- 每个 thread 主要在做 load + accumulate
+- 计算本身非常轻
+- 因此 compute pipeline 天然不会忙
+
+也就是说，`v7` 不是 compute-bound，而是非常典型的 memory-bound：
+
+- DRAM 快打满了
+- ALU 和 scheduler 指标自然不会漂亮
+
+所以这里的正确解读是：
+
+**v7 更快，不是因为 SM 更忙，而是因为它终于把真正值钱的资源 DRAM 带宽用满了。**
+
+### 为什么 v7 的 scoreboard/LG stall 依然很高，但这次不再是坏消息
+
+报告显示 `v7` 的主要 stall 还是：
+
+- scoreboard dependency on L1TEX
+- LG instruction queue full
+
+这并不意外，因为 `v7` 本质上就是在高频连续发 global memory load。
+
+在这种阶段，这类 stall 的意义和 `v6` 不一样：
+
+- 在 `v6` 中，它意味着 kernel 还没把收益转化成有效吞吐
+- 在 `v7` 中，它更像是“已经把 memory subsystem 推到接近上限”的副作用
+
+因为此时同时伴随的是：
+
+- `DRAM Throughput` 接近 `100%`
+- `Max Bandwidth` 接近 `100%`
+
+所以这些 stall 不再说明“实现低效”，而更多说明“你已经快把内存子系统压满了”。
+
+### 关于 occupancy、register 和 waves 的组合，怎么解读
+
+`v7` 的几个指标组合很有代表性：
+
+- `Registers Per Thread = 37`，明显高于 `v6` 的 `16`
+- `Achieved Occupancy = 95.19%`，反而更高
+- `Waves Per SM = 6.40`，极低
+
+这说明：
+
+- kernel launch 的总 CTA 数已经很少
+- 但因为 block size 是 `256`，单个 SM 上仍能维持不错的活跃 warps
+- 整个 kernel 很快完成，所以总波次数量很小
+
+换句话说，`v7` 不是靠“大量波次把延迟藏住”，而是靠：
+
+- 较大的 CTA 粒度
+- 高效的线程局部预聚合
+- 非常高的 DRAM 带宽利用率
+
+快速把这一轮 pass 做完。
+
+### `Waves Per SM` 是怎么计算的，为什么 `v6 -> v7` 降了这么多
+
+`Waves Per SM` 可以近似理解成：整个 grid 需要分多少“批次”才能在所有 SM 上跑完。一个常用近似公式是：
+
+$$
+	ext{Waves Per SM} = \frac{\text{Grid Size}}{\#SM \times \text{resident blocks per SM}}
+$$
+
+其中 `resident blocks per SM` 由 occupancy/launch 里的 block 限制项共同决定，近似取最紧的那个约束：
+
+$$
+	ext{resident blocks per SM} = \min(\text{Block Limit SM},\ \text{Block Limit Registers},\ \text{Block Limit Shared Mem},\ \text{Block Limit Warps})
+$$
+
+对 `v6`：
+
+- `Grid Size = 131072`
+- `#SM = 40`
+- 最紧约束是 `Block Limit Warps = 8`
+
+所以：
+
+$$
+\frac{131072}{40 \times 8} = 409.6
+$$
+
+对 `v7`：
+
+- `Grid Size = 1024`
+- `#SM = 40`
+- 最紧约束是 `Block Limit Warps = 4`
+
+所以：
+
+$$
+\frac{1024}{40 \times 4} = 6.4
+$$
+
+因此 `v6 -> v7` 的 `Waves Per SM` 从 `409.60` 掉到 `6.40`，根本原因不是 occupancy 崩了，而是：
+
+- `v7` 的 grid 规模从 `131072` 个 block 直接降到 `1024` 个 block
+- 每个 CTA 吃的数据更多
+- 整个 kernel 只需要很少几轮“波次”就能跑完
+
+所以 `Waves Per SM` 更像是在描述“grid 被分批喂给 SM 的次数”，不是某个单独 warp 的效率指标。
+
+### 当前最可靠的结论
+
+`v7` 的根本收益可以概括为：
+
+1. **通过 thread-local multi-add 大幅减少 partial sums 数量和全局并行层面的管理开销。**
+2. **把 kernel 的主要资源使用从“控制流/同步优化”推进到“接近 DRAM roof 的大吞吐 streaming”。**
+
+因此，`v7` 相比 `v6` 不只是“小改进”，而是进入了新的瓶颈阶段：
+
+- 之前主要在清理 execution overhead
+- 现在主要受 DRAM 带宽上限约束
+
+### 对后续版本的启示
+
+`v7` 的结果说明后续优化方向也要变：
+
+- 再继续做尾部 reduction 小修小补，价值已经不大
+- 下一步如果继续优化，重点应当放在：
+
+1. global load 组织方式
+   - 如 vectorized load（`float2` / `float4`）
+   - 对齐与 transaction 利用率
+
+2. 单线程局部累加的 ILP 与访存节奏
+   - 是否能更好地交织 load 和 add
+
+3. 整体多-pass reduction pipeline
+   - 看完整 reduction 的总时间，而不是单 pass
+
+---
+
+## 4.10 v8: shuffle 版本为什么几乎和 v7 一样
+
+### 代码变化
+
+`v8` 的核心变化是把 block 内最后阶段的规约进一步改成 warp shuffle：
+
+- 每个 thread 仍然先做 thread-local multi-add
+- 先用 `__shfl_down_sync()` 在 warp 内做规约
+- 每个 warp 只把一个 partial sum 写入很小的 shared-memory 数组
+- 最后由 warp 0 再用 shuffle 做第二级规约
+
+这意味着 `v8` 主要优化的是：
+
+- block 内尾部规约的 shared-memory 读写
+- 尾部阶段的 shared-memory footprint
+- 尾部阶段的一小部分同步/数据交换成本
+
+### 指标对比（v7 -> v8）
+
+| 指标 | v7 | v8 | 观察 |
+|---|---:|---:|---|
+| Block Size | 256 | 256 | 相同 |
+| Grid Size | 1024 | 1024 | 相同 |
+| Duration | 567.04 us | 566.34 us | 几乎相同，约 `-0.1%` |
+| SM Active Cycles | 323739 | 324048 | 几乎相同 |
+| Executed Instructions | 7.82M | 7.81M | 几乎相同 |
+| Memory Throughput | 308.46 GB/s | 308.01 GB/s | 几乎相同 |
+| DRAM Throughput | 98.01% | 97.39% | 几乎相同 |
+| Max Bandwidth | 98.01% | 97.39% | 几乎相同 |
+| Registers Per Thread | 37 | 36 | 略降 |
+| Static Shared Memory | 1.02 KB | 32 B | 明显下降 |
+| Waves Per SM | 6.40 | 6.40 | 完全相同 |
+
+### 根本原因：v7 已经把问题推到 DRAM roof，v8 只是在优化非主瓶颈
+
+这是 `v7 -> v8` 几乎没有差距的核心原因。
+
+`v8` 确实让 block 内尾部规约更“高级”：
+
+- 用 shuffle 替代一部分 shared-memory tail reduction
+- static shared memory 从 `1.02 KB` 降到 `32 B`
+- registers 也少了 1 个
+
+但这些优化触及的是尾部局部实现，而不是决定总时间的主要瓶颈。
+
+从 `v7` 开始，报告已经非常明确：
+
+- `DRAM Throughput` 接近 `100%`
+- `Max Bandwidth` 接近 `100%`
+- kernel 已经非常典型地 memory-bound
+
+所以到了这个阶段，关键路径是：
+
+**大规模 global load + DRAM 带宽上限**
+
+而不是 block 内最后几十个元素怎么规约。
+
+因此，`v8` 虽然优化掉了尾部 shared-memory 细节，但那部分已经不是主瓶颈，所以总时间几乎不动。
+
+### 为什么 `Waves Per SM` 在 v7 和 v8 完全一样
+
+这也是一个很直接的佐证。
+
+对 `v8`：
+
+- `Grid Size = 1024`
+- `#SM = 40`
+- 最紧约束仍然是 `Block Limit Warps = 4`
+
+所以：
+
+$$
+\frac{1024}{40 \times 4} = 6.4
+$$
+
+这说明 `v8` 并没有改变：
+
+- 宏观 launch 粒度
+- CTA 在 SM 上的驻留上限
+- 整个 grid 的波次结构
+
+它只是改了每个 block 内末尾规约的实现细节。
+
+### 为什么 shared-memory/寄存器改善了，但时间还是不动
+
+`v8` 的局部资源画像确实更好一些：
+
+- `Static Shared Memory` 从 `1.02 KB` 降到 `32 B`
+- `Registers Per Thread` 从 `37` 降到 `36`
+
+但这些改善没有转化成新的吞吐收益，根本原因是：
+
+- resident blocks per SM 仍然被 `Block Limit Warps = 4` 限住
+- DRAM 带宽已经接近峰值
+- grid 和 waves 结构完全相同
+
+所以这些局部节省没有带来：
+
+- 更多 resident CTAs
+- 更多 waves overlap
+- 更高的 DRAM 带宽上限
+
+因此 wall-clock 时间几乎不变是完全合理的。
+
+### 当前最可靠的结论
+
+`v8` 与 `v7` 几乎没有差距，最准确的结论是：
+
+1. **`v7` 已经把单 pass 推到接近 DRAM roof，问题已经非常明确地 memory-bound。**
+2. **`v8` 的 shuffle 优化只触及 block 内尾部规约这一非主瓶颈，因此只能带来几乎不可见的收益。**
+
+这正符合你现在的判断：
+
+- 最后的优化和 `v7` 差距极小
+- 根本原因就是 memory 已经基本 max out，后续很难再靠尾部 reduction 技巧继续提速
+
+---
+
+## 5. 从 v0 到 v8 的总体规律
+
+可以把整个优化过程概括为八类问题的依次清除：
 
 ### 第一阶段：去掉最昂贵的 global memory 中间态
 - `v0 -> v1`
@@ -765,6 +1333,18 @@ volatile __shared__ float sdata[THREADS_PER_BLOCK];
 ### 第五阶段：去掉最后一个 warp 的 block 级同步
 - `v4 -> v5`
 - 核心收益：把最后一个 warp 的 reduction 展开成直线代码，减少同步、分支和循环控制开销
+
+### 第六阶段：继续压缩剩余控制流，但进入边际递减
+- `v5 -> v6`
+- 核心现象：动态指令继续下降，但主导瓶颈已经转向数据依赖和 warp readiness，因此时间收益很小
+
+### 第七阶段：用 thread-local 预聚合把 kernel 推向 DRAM roof
+- `v6 -> v7`
+- 核心收益：大幅减少 partial sums 与并行管理开销，并把瓶颈推进到 DRAM 带宽上限附近
+
+### 第八阶段：把 block 内尾部规约换成 shuffle，但收益接近饱和
+- `v7 -> v8`
+- 核心现象：尾部规约更干净，但主瓶颈仍是 DRAM 带宽，因此几乎无额外收益
 
 ---
 
@@ -788,6 +1368,9 @@ volatile __shared__ float sdata[THREADS_PER_BLOCK];
 - `v3`：数据在 shared memory 里也要按 bank 友好的方式访问
 - `v4`：让每个 block 完成更多有效归约，减少全局启动与中间结果规模
 - `v5`：让最后一个 warp 用更少的同步和控制流完成同样的归约
+- `v6`：继续减少控制流指令，但不再触及主导瓶颈，因此收益有限
+- `v7`：让每个 thread 先做更多局部累加，再用较少 CTA 做 block reduction，把问题推到 DRAM roof
+- `v8`：用 shuffle 进一步优化 block 内尾部，但由于 DRAM 已近满载，收益接近消失
 
 ---
 
@@ -818,8 +1401,9 @@ volatile __shared__ float sdata[THREADS_PER_BLOCK];
 | 版本 | 核心代码变化 | 期望改善的瓶颈 | 关键观察指标 | 若失败最可能的根因 |
 |---|---|---|---|---|
 | v5 | warp-level tail reduction | sync / shared traffic | Duration, SM cycles, Executed Inst, Warp Stall | warp 内实现不当，寄存器压力增加 |
-| v6 | unroll last steps | control overhead | Issued Inst, Branch Inst, Issue Slots Busy | 指令缓存/寄存器压力，收益不明显 |
-| v7 | vectorized load | global load efficiency | DRAM Throughput, sectors/request, Duration | 对齐不佳、访存模式破坏 coalescing |
+| v6 | complete unroll | control overhead | Issued Inst, Branch Inst, Issue Slots Busy | 主瓶颈已转向数据依赖，收益不明显 |
+| v7 | thread-local multi-add | DRAM utilization | DRAM Throughput, Max Bandwidth, Duration | 误把浮点求和顺序差异当成算法错误 |
+| v8 | warp shuffle tail | tail reduction overhead | Duration, DRAM Throughput, Waves Per SM | 优化的是非主瓶颈，收益被 memory-bound 吞掉 |
 
 后续每一版都建议固定看这几组指标：
 
@@ -848,8 +1432,11 @@ volatile __shared__ float sdata[THREADS_PER_BLOCK];
 - `v3` 通过 bank-friendly sequential addressing 获得了显著提升
 - `v4` 则进一步从算法层减少总 block 数、总线程数和总指令数，带来接近翻倍的单 pass 提速
 - `v5` 则继续在 warp 级别消掉最后几轮同步与控制流，把单 pass 时间进一步压缩
+- `v6` 说明当尾部同步和 loop 控制已经很薄时，再继续完全展开只会带来很有限的边际收益
+- `v7` 则表明一旦显著增加 thread-local 预聚合，优化重心就会从控制流/同步转移到 DRAM 带宽本身
+- `v8` 则进一步表明：当单 pass 已经接近 DRAM roof 时，再优化 block 内尾部规约通常很难带来可见收益
 
-到 `v5` 为止，这个 reduction kernel 已经从“低效的 naive 实现”走到了“访存模式、同步方式和总工作量都更合理的优化版本”。
+到 `v8` 为止，这个 reduction kernel 已经从“低效的 naive 实现”走到了“访存模式、同步方式和总工作量都更合理的优化版本”，并且已经明显逼近单 pass 的 DRAM 带宽上限。
 
 如果继续往下做，最值得追求的不是更高的 occupancy，而是：
 

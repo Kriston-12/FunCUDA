@@ -37,3 +37,9 @@ endfunction()
 add_reduce_executable(my_reduce_v4_add_during_load_B my_reduce_v4_add_during_load_B.cu)
 
 add_reduce_executable(my_reduce_v5_unroll_last_warp my_reduce_v5_unroll_last_warp.cu)
+
+add_reduce_executable(my_reduce_v6_complete_unroll my_reduce_v6_complete_unroll.cu)
+
+add_reduce_executable(my_reduce_v7_multi_add my_reduce_v7_multi_add.cu)
+
+add_reduce_executable(my_reduce_v8_shuffle my_reduce_v8_shuffle.cu)

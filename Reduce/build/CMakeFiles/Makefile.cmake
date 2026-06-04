@@ -54,4 +54,7 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/my_reduce_v4_add_during_load_B.dir/DependInfo.cmake"
   "CMakeFiles/my_reduce_v5_unroll_last_warp.dir/DependInfo.cmake"
+  "CMakeFiles/my_reduce_v6_complete_unroll.dir/DependInfo.cmake"
+  "CMakeFiles/my_reduce_v7_multi_add.dir/DependInfo.cmake"
+  "CMakeFiles/my_reduce_v8_shuffle.dir/DependInfo.cmake"
   )
