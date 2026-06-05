@@ -1,1 +1,0 @@
-/usr/bin/g++ @CMakeFiles/my_reduce_v2_no_divergence.dir/objects1.rsp -o my_reduce_v2_no_divergence @CMakeFiles/my_reduce_v2_no_divergence.dir/linkLibs.rsp -L"/usr/local/cuda/targets/x86_64-linux/lib/stubs" -L"/usr/local/cuda/targets/x86_64-linux/lib"

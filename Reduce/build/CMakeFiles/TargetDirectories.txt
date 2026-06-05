@@ -1,7 +1,0 @@
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v4_add_during_load_B.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v5_unroll_last_warp.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v6_complete_unroll.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v7_multi_add.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/my_reduce_v8_shuffle.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/edit_cache.dir
-/home/ubuntu/FunCUDA/Reduce/build/CMakeFiles/rebuild_cache.dir
